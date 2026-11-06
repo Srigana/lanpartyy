@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind iproute2 linux-modules-extra-$(uname -r) || sudo apt-get install -y valgrind iproute2
+          pip install pytest
+
+      - name: build with sanitizers
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=ON
+          cmake --build build -j
+
+      - name: unit tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: pytest
+        run: python -m pytest -v
+
+      - name: pytest with tc netem
+        run: |
+          sudo modprobe sch_netem
+          sudo env "PATH=$PATH" USE_NETEM=1 python -m pytest -v tests/test_lossy.py
+
+      - name: valgrind
+        run: |
+          cmake -S . -B build-vg -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build-vg -j
+          valgrind --error-exitcode=1 build-vg/test_netc
+          valgrind --leak-check=full --error-exitcode=1 build-vg/lanserver --port 40100 --duration 8 &
+          VG=$!
+          sleep 2
+          python client/bot.py --port 40100 --count 6 --duration 4
+          wait $VG
