@@ -38,11 +38,13 @@ The tests run the real server against Python bots. They cover joins, reconnects,
 
 ## Performance
 
-From `python tools/bench.py`, on localhost:
+Measured with `python tools/bench.py` on a MacBook Air, everything on localhost.
 
-|                                |                                               |
-| ------------------------------ | --------------------------------------------- |
-| Bandwidth, 8 players, 2 moving | 989 B/s per player (delta) vs 2120 B/s (full) |
-| Drift at 10% loss, 20 ms delay | 4 px median, 22 px max                        |
-| Rejoin after a 6 s outage      | 89 ms average                                 |
-| Tick time with 32 players      | 0.17 ms (budget is 33 ms)                     |
+| Metric                                       | Result                                                   |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Bandwidth, 8 players, 2 moving               | 961 B/s per player (delta) vs 2114 B/s (full), 55% less  |
+| Bandwidth, 8 players, all moving             | 1775 B/s per player (delta) vs 2116 B/s (full), 16% less |
+| Drift at 10% loss, 20 ms delay               | 4 px median, 16 px max, no reconnects                    |
+| Rejoin after a 6 s outage                    | 112 ms average                                           |
+| Rejoin from a new process with a saved token | 50 ms average                                            |
+| Tick time with 32 players                    | 0.77 ms average, 0 missed ticks (budget is 33 ms)        |
